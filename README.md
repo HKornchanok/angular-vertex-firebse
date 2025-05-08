@@ -3,7 +3,7 @@
 This repository contains everything you need to create an application using Vertex AI in Firebase with Angular to build your next great application.
 
 Here's an example of the running application:
-![Alt text](example-screenshot.png "a screenshot of the running app with two boxes filled with content")
+![Alt text](image.png "a screenshot of the running app with two boxes filled with content")
 
 ## How to get started
 
