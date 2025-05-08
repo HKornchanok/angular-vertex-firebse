@@ -44,4 +44,14 @@ export class ProductService {
   addToCart(product: Product) {
     this.productCart.update((cart) => [...cart, product]);
   }
+
+  removeFromCart(product: Product) {
+    this.productCart.update((cart) => {
+      const index = cart.findIndex(p => p.name === product.name);
+      if (index > -1) {
+        return [...cart.slice(0, index), ...cart.slice(index + 1)];
+      }
+      return cart;
+    });
+  }
 }

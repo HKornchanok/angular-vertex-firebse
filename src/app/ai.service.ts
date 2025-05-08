@@ -63,13 +63,51 @@ export class AiService {
             },
           }) as ObjectSchemaInterface,
         },
+        {
+          name: "removeFromCart",
+          description: "Remove one or more products from the cart.",
+          parameters: Schema.object({
+            properties: {
+              productsToRemove: Schema.array({
+                items: Schema.object({
+                  description: "A single product with its name and price.",
+                  properties: {
+                    name: Schema.string({
+                      description: "The name of the product.",
+                    }),
+                    price: Schema.number({
+                      description: "The numerical price of the product.",
+                    }),
+                  },
+                  required: ["name", "price"],
+                }),
+              }),
+            },
+          }) as ObjectSchemaInterface,
+        },
       ],
     };
 
     // Initialize the Vertex AI service
     const vertexAI = getVertexAI(this.firebaseApp);
-    const systemInstruction =
-      "Welcome to ng-produce. You are a superstar agent for this ecommerce store. you will assist users by answering questions about the inventory and event being able to add items to the cart.";
+    
+    // Get all products to include in system instruction
+    const allProducts = this.products.getProducts();
+    const productList = allProducts.map(p => `${p.name} ($${p.price.toFixed(2)})`).join('\n');
+    
+    const systemInstruction = `Welcome to ng-produce. You are a superstar agent for this ecommerce store. You will assist users by answering questions about the inventory and even being able to add or remove items from the cart.
+
+Here are all the available products and their prices:
+${productList}
+
+You can help users by:
+1. Answering questions about product availability and prices
+2. Adding products to their cart
+3. Removing products from their cart
+4. Providing information about the total cart value
+5. Suggesting products based on user preferences
+
+Please be helpful and friendly in your responses.`;
 
     // Initialize the generative model with a model that supports your use case
     this.model = getGenerativeModel(vertexAI, {
@@ -129,6 +167,23 @@ export class AiService {
             ]);
             break;
           }
+          case "removeFromCart": {
+            console.log(functionCall.args);
+
+            const args = functionCall.args as { productsToRemove: Product[]}
+
+            const functionResult = this.removeFromCart(args.productsToRemove);
+
+            result = await this.chat.sendMessage([
+              {
+                functionResponse: {
+                  name: functionCall.name,
+                  response: { numberOfProductsRemoved: functionResult },
+                },
+              }
+            ]);
+            break;
+          }
         }
       }
     }
@@ -146,6 +201,12 @@ export class AiService {
   addToCart(productsToAdd: Product[]) {
     for (let i = 0; i < productsToAdd.length; i++) {
       this.products.addToCart(productsToAdd[i]);
+    }
+  }
+
+  removeFromCart(productsToRemove: Product[]) {
+    for (let i = 0; i < productsToRemove.length; i++) {
+      this.products.removeFromCart(productsToRemove[i]);
     }
   }
 }
