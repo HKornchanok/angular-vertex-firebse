@@ -2,3 +2,7 @@ node_modules
 node_modules
 
 .angular
+
+
+.nx/cache
+.nx/workspace-data
