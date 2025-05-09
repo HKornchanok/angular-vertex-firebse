@@ -1,8 +1,10 @@
 node_modules
-node_modules
+
+.cursor/mcp.json
 
 .angular
 
 
 .nx/cache
 .nx/workspace-data
+
