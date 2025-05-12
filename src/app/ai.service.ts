@@ -1,85 +1,76 @@
-/*!
- * @license
- * Copyright Google LLC All Rights Reserved.
- *
- * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.dev/license
- */
-import { Injectable, Inject, inject } from "@angular/core";
-import { FirebaseApp } from "@angular/fire/app";
+import { Inject, inject, Injectable } from '@angular/core';
+import { FirebaseApp } from '@angular/fire/app';
 import {
-  getVertexAI,
-  getGenerativeModel,
-  GenerativeModel,
   ChatSession,
   FunctionDeclarationsTool,
+  GenerativeModel,
+  getGenerativeModel,
+  getVertexAI,
   ObjectSchemaInterface,
   Schema,
-} from "@angular/fire/vertexai";
-import { ProductService } from "./product.service";
-import { Product } from "./product";
+} from '@angular/fire/vertexai';
+import { Product } from './product';
+import { ProductService } from './product.service';
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class AiService {
   private readonly model: GenerativeModel;
   private readonly products: ProductService = inject(ProductService);
   private readonly chat: ChatSession;
 
-  constructor(@Inject("FIREBASE_APP") private firebaseApp: FirebaseApp) {
+  constructor(@Inject('FIREBASE_APP') private firebaseApp: FirebaseApp) {
     const productsToolSet: FunctionDeclarationsTool = {
       functionDeclarations: [
         {
-          name: "getNumberOfProducts",
-          description:
-            "Get a count of the number of products available in the inventory.",
+          name: 'getNumberOfProducts',
+          description: 'Get a count of the number of products available in the inventory.',
         },
         {
-          name: "getProducts",
-          description:
-            "Get an array of the products with the name and price of each product.",
+          name: 'getProducts',
+          description: 'Get an array of the products with the name and price of each product.',
         },
         {
-          name: "addToCart",
-          description: "Add one or more products to the cart.",
+          name: 'addToCart',
+          description: 'Add one or more products to the cart.',
           parameters: Schema.object({
             properties: {
               productsToAdd: Schema.array({
                 items: Schema.object({
-                  description: "A single product with its name and price.",
+                  description: 'A single product with its name and price.',
                   properties: {
                     name: Schema.string({
-                      description: "The name of the product.",
+                      description: 'The name of the product.',
                     }),
                     price: Schema.number({
-                      description: "The numerical price of the product.",
+                      description: 'The numerical price of the product.',
                     }),
                   },
                   // Specify which properties within each product object are required
-                  required: ["name", "price"],
+                  required: ['name', 'price'],
                 }),
               }),
             },
           }) as ObjectSchemaInterface,
         },
         {
-          name: "removeFromCart",
-          description: "Remove one or more products from the cart.",
+          name: 'removeFromCart',
+          description: 'Remove one or more products from the cart.',
           parameters: Schema.object({
             properties: {
               productsToRemove: Schema.array({
                 items: Schema.object({
-                  description: "A single product with its name and price.",
+                  description: 'A single product with its name and price.',
                   properties: {
                     name: Schema.string({
-                      description: "The name of the product.",
+                      description: 'The name of the product.',
                     }),
                     price: Schema.number({
-                      description: "The numerical price of the product.",
+                      description: 'The numerical price of the product.',
                     }),
                   },
-                  required: ["name", "price"],
+                  required: ['name', 'price'],
                 }),
               }),
             },
@@ -90,11 +81,11 @@ export class AiService {
 
     // Initialize the Vertex AI service
     const vertexAI = getVertexAI(this.firebaseApp);
-    
+
     // Get all products to include in system instruction
     const allProducts = this.products.getProducts();
     const productList = allProducts.map(p => `${p.name} ($${p.price.toFixed(2)})`).join('\n');
-    
+
     const systemInstruction = `Welcome to ng-produce. You are a superstar agent for this ecommerce store. You will assist users by answering questions about the inventory and even being able to add or remove items from the cart.
 
 Here are all the available products and their prices:
@@ -111,7 +102,7 @@ Please be helpful and friendly in your responses.`;
 
     // Initialize the generative model with a model that supports your use case
     this.model = getGenerativeModel(vertexAI, {
-      model: "gemini-2.0-flash",
+      model: 'gemini-2.0-flash',
       systemInstruction: systemInstruction,
       tools: [productsToolSet],
     });
@@ -126,7 +117,7 @@ Please be helpful and friendly in your responses.`;
     if (functionCalls && functionCalls.length > 0) {
       for (const functionCall of functionCalls) {
         switch (functionCall.name) {
-          case "getNumberOfProducts": {
+          case 'getNumberOfProducts': {
             const functionResult = this.getNumberOfProducts();
             result = await this.chat.sendMessage([
               {
@@ -138,7 +129,7 @@ Please be helpful and friendly in your responses.`;
             ]);
             break;
           }
-          case "getProducts": {
+          case 'getProducts': {
             const functionResult = this.getProducts();
             result = await this.chat.sendMessage([
               {
@@ -150,10 +141,10 @@ Please be helpful and friendly in your responses.`;
             ]);
             break;
           }
-          case "addToCart": {
+          case 'addToCart': {
             console.log(functionCall.args);
 
-            const args = functionCall.args as { productsToAdd: Product[]}
+            const args = functionCall.args as { productsToAdd: Product[] };
 
             const functionResult = this.addToCart(args.productsToAdd);
 
@@ -163,14 +154,14 @@ Please be helpful and friendly in your responses.`;
                   name: functionCall.name,
                   response: { numberOfProductsAdded: functionResult },
                 },
-              }
+              },
             ]);
             break;
           }
-          case "removeFromCart": {
+          case 'removeFromCart': {
             console.log(functionCall.args);
 
-            const args = functionCall.args as { productsToRemove: Product[]}
+            const args = functionCall.args as { productsToRemove: Product[] };
 
             const functionResult = this.removeFromCart(args.productsToRemove);
 
@@ -180,7 +171,7 @@ Please be helpful and friendly in your responses.`;
                   name: functionCall.name,
                   response: { numberOfProductsRemoved: functionResult },
                 },
-              }
+              },
             ]);
             break;
           }
